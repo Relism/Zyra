@@ -15,7 +15,6 @@ public class ZyraCore {
 
         System.out.println(Parser.parseEnum(Status.class).generateTypeScriptDefinition());
 
-        System.out.println("------------");
         System.out.println(ZodParser.generateZodSchema(User.class).zodObjectString());
         System.out.println(ZodParser.generateZodSchema(User.class).zodJsonSchema());
     }
