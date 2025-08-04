@@ -1,7 +1,6 @@
 package dev.relism.Zyra.parser;
 
 import dev.relism.Zyra.annotations.Zyra;
-import dev.relism.Zyra.annotations.ZyraVirtualField;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -12,31 +11,22 @@ public record ZyraParsedObject(
         Zyra config
 ) implements ZyraParsedDefinition {
 
-    public List<String> getRequiredImports() {
-        return fields.stream()
-                .flatMap(f -> f.getAllReferencedCustomTypes().stream())
-                .map(Class::getSimpleName)
-                .distinct()
-                .sorted()
-                .toList();
-    }
-
     public String getImportStatement(Map<Class<?>, ZyraParsedDefinition> knownDefs) {
-        return fields.stream()
-                .flatMap(f -> f.getAllReferencedCustomTypes().stream())
-                .filter(Objects::nonNull)
-                .map(knownDefs::get)
-                .filter(Objects::nonNull)
-                .map(ZyraParsedDefinition::name)
-                .filter(n -> !n.equals(name)) // avoid self-imports
-                .distinct()
-                .sorted()
-                .collect(Collectors.collectingAndThen(
-                        Collectors.toList(),
-                        types -> types.isEmpty()
-                                ? ""
-                                : "import { " + String.join(", ", types) + " } from './';"
-                ));
+        Map<String, Zyra.Export> dependencies = new LinkedHashMap<>();
+        for (ZyraParsedField f : fields) {
+            for (Class<?> dep : f.getAllReferencedCustomTypes()) {
+                if (dep != null && knownDefs.containsKey(dep)) {
+                    ZyraParsedDefinition def = knownDefs.get(dep);
+                    if (!def.name().equals(name)) {
+                        Zyra config = null;
+                        if (def instanceof ZyraParsedObject obj) config = obj.config();
+                        Zyra.Export exportType = config != null ? config.export() : Zyra.Export.NAMED;
+                        dependencies.put(def.name(), exportType);
+                    }
+                }
+            }
+        }
+        return ZyraImportManager.getImportStatements(dependencies, name);
     }
 
     public List<ZyraVirtualTsField> getVirtualFields() {
@@ -55,7 +45,7 @@ public record ZyraParsedObject(
         StringBuilder sb = new StringBuilder();
 
         String imports = getImportStatement(knownDefs);
-        if (!imports.isEmpty()) sb.append(imports).append("\n\n");
+        if (!imports.isEmpty()) sb.append(imports).append("\n");
 
         if (export == Zyra.Export.NAMED) sb.append("export ");
         else if (export == Zyra.Export.DEFAULT) sb.append("export default ");
