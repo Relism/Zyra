@@ -1,11 +1,10 @@
 package dev.relism.Zyra.parser;
 
-import dev.relism.Zyra.ZyraUtils;
 import dev.relism.Zyra.annotations.Zyra;
+import dev.relism.Zyra.annotations.ZyraVirtualField;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public record ZyraParsedObject(
         String name,
@@ -22,76 +21,82 @@ public record ZyraParsedObject(
                 .toList();
     }
 
-    public String getImportStatement(Map<Class<?>, ZyraParsedDefinition> knownDefinitions) {
-        List<String> types = fields.stream()
+    public String getImportStatement(Map<Class<?>, ZyraParsedDefinition> knownDefs) {
+        return fields.stream()
                 .flatMap(f -> f.getAllReferencedCustomTypes().stream())
                 .filter(Objects::nonNull)
-                .filter(knownDefinitions::containsKey)
-                .map(cls -> knownDefinitions.get(cls).name())
-                .filter(importName -> !importName.equals(name)) // ignore auto imports
+                .map(knownDefs::get)
+                .filter(Objects::nonNull)
+                .map(ZyraParsedDefinition::name)
+                .filter(n -> !n.equals(name)) // avoid self-imports
                 .distinct()
                 .sorted()
-                .toList();
-
-        if (types.isEmpty()) return "";
-
-        return "import { " + String.join(", ", types) + " } from './';";
+                .collect(Collectors.collectingAndThen(
+                        Collectors.toList(),
+                        types -> types.isEmpty()
+                                ? ""
+                                : "import { " + String.join(", ", types) + " } from './';"
+                ));
     }
 
+    public List<ZyraVirtualTsField> getVirtualFields() {
+        if (config == null) return List.of();
+        return Arrays.stream(config.virtualFields())
+                .map(vf -> new ZyraVirtualTsField(vf.name(), vf.tsType(), vf.optional()))
+                .toList();
+    }
 
-    public String generateTypeScriptDefinition(Map<Class<?>, ZyraParsedDefinition> knownDefinitions) {
-        int indentSpaces = config != null ? config.indentSpaces() : 2;
-        boolean useInterface = config != null && config.style() == Zyra.DefinitionStyle.INTERFACE;
+    public String generateTypeScriptDefinition(Map<Class<?>, ZyraParsedDefinition> knownDefs) {
+        int indentSize = config != null ? config.indentSpaces() : 2;
+        boolean isInterface = config != null && config.style() == Zyra.DefinitionStyle.INTERFACE;
         Zyra.Export export = config != null ? config.export() : Zyra.Export.NAMED;
 
-        String indent = " ".repeat(indentSpaces);
+        String indent = " ".repeat(indentSize);
         StringBuilder sb = new StringBuilder();
 
-        String importStatement = getImportStatement(knownDefinitions);
-        if (!importStatement.isEmpty()) {
-            sb.append(importStatement).append("\n\n");
-        }
+        String imports = getImportStatement(knownDefs);
+        if (!imports.isEmpty()) sb.append(imports).append("\n\n");
 
-        switch (export) {
-            case NAMED -> sb.append("export ");
-            case DEFAULT -> sb.append("export default ");
-            case NONE -> {}
-        }
+        if (export == Zyra.Export.NAMED) sb.append("export ");
+        else if (export == Zyra.Export.DEFAULT) sb.append("export default ");
 
-        if (useInterface) {
-            sb.append("interface ").append(name()).append(" {\n");
-        } else {
-            sb.append("type ").append(name()).append(" = {\n");
-        }
+        sb.append(isInterface ? "interface " : "type ")
+                .append(name())
+                .append(" ")
+                .append(isInterface ? "{\n" : "= {\n");
 
+        // Real fields
         for (ZyraParsedField field : fields) {
             sb.append(indent)
                     .append(field.name())
                     .append(field.isOptional() ? "?: " : ": ");
 
-            if (field.isCustomType()) {
-                Class<?> dep = field.resolvedClass();
-                String depName = dep != null && knownDefinitions.containsKey(dep)
-                        ? knownDefinitions.get(dep).name()
-                        : field.tsType(); // fallback
-                sb.append(depName);
-            } else {
-                sb.append(field.tsType());
-            }
+            String type = field.isCustomType()
+                    ? Optional.ofNullable(knownDefs.get(field.resolvedClass()))
+                    .map(ZyraParsedDefinition::name)
+                    .orElse(field.tsType())
+                    : field.tsType();
 
-            sb.append(";\n");
+            sb.append(type).append(";\n");
+        }
+
+        // Virtual fields
+        for (ZyraVirtualTsField vf : getVirtualFields()) {
+            sb.append(indent)
+                    .append(vf.name)
+                    .append(vf.optional ? "?: " : ": ")
+                    .append(vf.tsType)
+                    .append(";\n");
         }
 
         sb.append("};");
         return sb.toString();
     }
 
-
     @Override
     public String toString() {
-        return "ZyraParsedObject{name='%s', fields=%s}".formatted(
-                name(),
-                fields
-        );
+        return "ZyraParsedObject{name='%s', fields=%s}".formatted(name(), fields);
     }
+
+    private record ZyraVirtualTsField(String name, String tsType, boolean optional) {}
 }

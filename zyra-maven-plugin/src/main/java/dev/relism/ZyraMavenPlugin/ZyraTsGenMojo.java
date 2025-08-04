@@ -41,14 +41,14 @@ public class ZyraTsGenMojo extends AbstractMojo {
                 return;
             }
 
+            cleanOutputDirectory(outputDir);
+
             URL[] urls = {classesDir.toURI().toURL()};
             try (URLClassLoader classLoader = new URLClassLoader(urls, Thread.currentThread().getContextClassLoader())) {
                 List<Class<?>> zyraClasses = scanForZyraAnnotatedClasses(classesDir, classLoader);
 
                 getLog().info("Found " + zyraClasses.size() + " @Zyra annotated classes:");
-                for (Class<?> clazz : zyraClasses) {
-                    getLog().info(" - " + clazz.getName());
-                }
+                zyraClasses.forEach(clazz -> getLog().info(" - " + clazz.getName()));
 
                 TypeScriptGenerator generator = new TypeScriptGenerator();
                 generator.load(zyraClasses);
@@ -76,6 +76,23 @@ public class ZyraTsGenMojo extends AbstractMojo {
             getLog().error("Error during class scanning or TypeScript generation", e);
         }
     }
+
+    private void cleanOutputDirectory(File dir) {
+        if (!dir.exists()) return;
+
+        File[] files = dir.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    cleanOutputDirectory(file);
+                }
+                if (!file.delete()) {
+                    getLog().warn("Failed to delete: " + file.getAbsolutePath());
+                }
+            }
+        }
+    }
+
 
     private List<Class<?>> scanForZyraAnnotatedClasses(File classesDir, ClassLoader classLoader) throws ClassNotFoundException {
         List<Class<?>> result = new ArrayList<>();

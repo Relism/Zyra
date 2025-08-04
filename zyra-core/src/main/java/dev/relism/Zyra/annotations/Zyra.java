@@ -10,6 +10,8 @@ public @interface Zyra {
     int indentSpaces() default 2;
     String name() default "";
 
+    ZyraVirtualField[] virtualFields() default {};
+
     enum Export {
         NAMED,
         DEFAULT,
@@ -21,3 +23,4 @@ public @interface Zyra {
         INTERFACE
     }
 }
+

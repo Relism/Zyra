@@ -92,12 +92,13 @@ mvn zyra:zyra-tsgen
 
 Your annotated classes can be configured with the `@Zyra` annotation, allowing you to have granulated control over the generated TypeScript.
 
-| Option         | Type     | Description                                                                 |
-|----------------|----------|-----------------------------------------------------------------------------|
-| `export`       | enum     | `DEFAULT`, `NAMED`, or `NONE`. Determines how the TypeScript is exported.   |
-| `style`        | enum     | `INTERFACE` or `TYPE`. Controls whether it generates an interface or alias. |
-| `indentSpaces` | int      | Number of spaces to use for indentation. Default is `2`.                    |
-| `name`         | String   | Overrides the default output name (e.g., `UserDto.ts` instead of `User.ts`).  |
+| Option          | Type     | Description                                                                 |
+|-----------------|----------|-----------------------------------------------------------------------------|
+| `export`        | enum     | `DEFAULT`, `NAMED`, or `NONE`. Determines how the TypeScript is exported.   |
+| `style`         | enum     | `INTERFACE` or `TYPE`. Controls whether it generates an interface or alias. |
+| `indentSpaces`  | int      | Number of spaces to use for indentation. Default is `2`.                    |
+| `name`          | String   | Overrides the default output name (e.g., `UserDto.ts` instead of `User.ts`).  |
+| `virtualFields` | ZyraVirtualField[]  | Adds additional TypeScript-only fields that don’t exist in the original POJO. |
 
 ---
 
