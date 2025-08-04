@@ -1,10 +1,13 @@
 package dev.relism.Zyra.parser;
 
+import dev.relism.Zyra.annotations.Zyra;
 import dev.relism.Zyra.annotations.ZyraOptional;
-import dev.relism.Zyra.constants.TypeScriptTypeMapper;
+import dev.relism.Zyra.typescript.TypeScriptTypeResolver;
 
 import java.lang.reflect.*;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 public record ZyraParsedField(
         Field field
@@ -18,9 +21,12 @@ public record ZyraParsedField(
         return field.getGenericType();
     }
 
+    private static final TypeScriptTypeResolver tsResolver = new TypeScriptTypeResolver();
+
     public String tsType() {
-        return TypeScriptTypeMapper.toTypeScriptType(javaType());
+        return tsResolver.resolve(javaType());
     }
+
 
     public Class<?> resolvedClass() {
         Type type = javaType();
@@ -43,11 +49,7 @@ public record ZyraParsedField(
 
     public boolean isCustomType() {
         Class<?> resolved = resolvedClass();
-        if (resolved == null) return false;
-        String ts = tsType();
-        return !isPrimitiveOrBuiltin()
-                && !ts.endsWith("[]")
-                && !ts.startsWith("{ [key:");
+        return resolved != null && resolved.isAnnotationPresent(Zyra.class);
     }
 
     public boolean isOptional() {
@@ -67,4 +69,38 @@ public record ZyraParsedField(
 
         return isOptionalGeneric || isZyraOptional || isNullable;
     }
+
+    public Set<Class<?>> getAllReferencedCustomTypes() {
+        Set<Class<?>> result = new HashSet<>();
+        collectCustomTypes(javaType(), result);
+        return result;
+    }
+
+    private void collectCustomTypes(Type type, Set<Class<?>> result) {
+        if (type instanceof Class<?> cls) {
+            if (isValidCustomType(cls)) result.add(cls);
+        } else if (type instanceof ParameterizedType pt) {
+            Type raw = pt.getRawType();
+            if (raw instanceof Class<?> rawCls && isValidCustomType(rawCls)) {
+                result.add(rawCls);
+            }
+
+            for (Type arg : pt.getActualTypeArguments()) {
+                if (arg instanceof Class<?> argCls && isValidCustomType(argCls)) {
+                    result.add(argCls);
+                } else {
+                    collectCustomTypes(arg, result);
+                }
+            }
+        } else if (type instanceof GenericArrayType gat) {
+            collectCustomTypes(gat.getGenericComponentType(), result);
+        }
+    }
+
+
+    private boolean isValidCustomType(Class<?> cls) {
+        return !cls.isPrimitive() && cls.isAnnotationPresent(Zyra.class);
+    }
+
+
 }

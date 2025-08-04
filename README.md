@@ -1,24 +1,32 @@
 # Zyra <img src="zyra_nobg.png" align="left" height="120px" alt="Zyra logo" />
 
-Zyra is a Java annotation-based code generation tool for producing type-safe TypeScript definitions and Zod schemas from your POJOs.
+Type-safe TypeScript + Zod schema generation for Java POJOs.
+
+![License](https://img.shields.io/github/license/relism/zyra?color=blue)
+![Java](https://img.shields.io/badge/java-17%2B-blue)
+![Maven Plugin](https://img.shields.io/badge/maven-plugin-yellow)
+
+<br/>
 
 ---
 
-## Why do i need it?
+## 🌷 Why Zyra?
 
-Zyra simplifies full-stack development by allowing backend developers to define their data models once in Java and automatically generate type-safe TypeScript and Zod schema representations for use in the frontend. No more maintaining duplicate model definitions across layers — Zyra does it for you, cleanly and reliably.
+- Eliminate duplicate model definitions between backend and frontend
+- Type-safe and consistent across the stack
+- Zod validation schemas generated alongside TypeScript types
+- Works with any framework: Spring, Micronaut, Quarkus, etc.
 
 ---
 
-## Real-World Example Output
+## Getting Started
 
-Given the annotated Java class:
+### 1. Annotate your classes
 
 ```java
 @Zyra(
-    export = Zyra.Export.DEFAULT,
-    style = Zyra.DefinitionStyle.INTERFACE,
-    indentSpaces = 2
+        export = Zyra.Export.DEFAULT,
+        style = Zyra.DefinitionStyle.INTERFACE
 )
 public class User {
     private String username;
@@ -26,16 +34,20 @@ public class User {
     private boolean active;
     private Address address;
     private List<String> roles;
-    private List<User> friends;
     private Map<String, Integer> preferences;
-    private Status status;
 }
 ```
 
-Zyra generates the following TypeScript definition:
+### 2. Run the Zyra Maven plugin
+
+```shell
+mvn zyra:zyra-tsgen
+```
+
+### 3. Enjoy the output
 
 ```ts
-import { Address, Status } from './';
+import { Address } from './';
 
 export default interface User {
     username: string;
@@ -43,33 +55,99 @@ export default interface User {
     active: boolean;
     address: Address;
     roles: string[];
-    friends: User[];
     preferences: { [key: string]: number };
-    status: Status;
 }
 ```
 
 ---
 
-## ⚙️ Configuration Options
+## 🌷 Maven Plugin Configuration for Codegen
 
-The `@Zyra` annotation supports the following options:
+Add this to your `pom.xml`:
 
-| Option             | Description                                                                 |
-|--------------------|-----------------------------------------------------------------------------|
-| `export`           | Controls the export style. Can be `DEFAULT`, `NAMED`, or `NULL` (no export). |
-| `style`            | Generates either a TypeScript `INTERFACE` or a `TYPE` alias.                |
-| `indentSpaces`     | Sets indentation width (e.g. `2`, `4`, etc.).                               |
-| `filenameOverride` | Overrides the output filename (e.g. `UserDto.ts` instead of `User.ts`).     |
+```xml
+<plugin>
+    <groupId>dev.relism</groupId>
+    <artifactId>zyra-maven-plugin</artifactId>
+    <version>1.0.0</version>
+    <executions>
+        <execution>
+            <goals>
+                <goal>zyra-tsgen</goal>
+            </goals>
+        </execution>
+    </executions>
+</plugin>
+```
+
+Run it with:
+
+```shell
+mvn zyra:zyra-tsgen
+```
 
 ---
 
-## 📦 Features
+## 🌷 `@Zyra` Annotation Options
 
-- ✅ Supports all Java primitives and collections (`List`, `Map`, etc.)
-- ✅ Recursively generates definitions for custom nested classes (like `Address`), as long as they are also annotated with `@Zyra`
-- ✅ Automatically generates `import` statements for referenced types within the same Zyra generation scope
-- ✅ Clean and customizable output with consistent formatting
+Your annotated classes can be configured with the `@Zyra` annotation, allowing you to have granulated control over the generated TypeScript.
+
+| Option         | Type     | Description                                                                 |
+|----------------|----------|-----------------------------------------------------------------------------|
+| `export`       | enum     | `DEFAULT`, `NAMED`, or `NONE`. Determines how the TypeScript is exported.   |
+| `style`        | enum     | `INTERFACE` or `TYPE`. Controls whether it generates an interface or alias. |
+| `indentSpaces` | int      | Number of spaces to use for indentation. Default is `2`.                    |
+| `name`         | String   | Overrides the default output name (e.g., `UserDto.ts` instead of `User.ts`).  |
 
 ---
+
+## 🌷 Maven Plugin Options
+
+TThese options can be passed via `-D` Maven CLI parameters:
+
+| Parameter                    | Default                                     | Description                                                         |
+|-----------------------------|---------------------------------------------|---------------------------------------------------------------------|
+| `zyra.outputDir`            | `${project.build.directory}/zyra/tsout`     | Where the `.ts` files will be written                               |
+| `zyra.singleFileOutput`     | `false`                                     | If `true`, generates a single aggregated file                       |
+| `zyra.fileHeader`           | `null`                                      | Adds a header comment to all generated files                        |
+| `project.build.outputDirectory` | `${project.build.outputDirectory}`       | Directory where compiled `.class` files are located                 |
+
+Example :
+
+```shell
+mvn zyra:zyra-tsgen \
+-Dzyra.outputDir=src/generated/types \
+-Dzyra.singleFileOutput=true \
+-Dzyra.fileHeader="// Auto-generated by Zyra — do not edit"
+```
+
+---
+
+## 🌷 Supported Features
+
+- ✅ Java → TypeScript interface/type generation
+- ✅ Full generic support (`List<T>`, `Map<K, V>`, `Optional<T>`, nested structures)
+- ✅ Zod schema support with decorators like `@ZodString`, `@ZodNumber`
+- ✅ Recursive import handling
+- ✅ Custom output directory, style, and naming
+
+---
+
+## 🌷 Roadmap
+
+- [ ] Zod schema generation toggle via CLI/Maven
+- [ ] Pluggable Type Mappers via API
+
+---
+
+## 🌷 Contributing
+
+Pull requests, feedback, and issues are welcome! Please fork the repo and open a PR.
+
+---
+
+## 🌷 License
+
+Zyra is licensed under the MIT License.
+
 

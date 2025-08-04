@@ -1,5 +1,6 @@
 package dev.relism.Zyra.parser;
 
+import dev.relism.Zyra.ZyraUtils;
 import dev.relism.Zyra.annotations.Zyra;
 import dev.relism.Zyra.exceptions.ZyraInvalidExportDependencyException;
 import dev.relism.Zyra.exceptions.ZyraAnnotationMissingException;
@@ -10,14 +11,6 @@ import java.util.List;
 
 
 public class Parser {
-
-    public static ZyraParsedType parse(Class<?> clazz) {
-        if (clazz.isEnum()) {
-            return parseEnum(clazz);
-        } else {
-            return parseObject(clazz);
-        }
-    }
 
     public static ZyraParsedEnum parseEnum(Class<?> clazz) {
         if (!clazz.isEnum()) {
@@ -34,7 +27,7 @@ public class Parser {
                 .map(Object::toString)
                 .toList();
 
-        return new ZyraParsedEnum(clazz.getSimpleName(), values, zyraConfig);
+        return new ZyraParsedEnum(ZyraUtils.normalizeFilename(clazz), values, zyraConfig);
     }
 
     public static ZyraParsedObject parseObject(Class<?> clazz) {
@@ -66,7 +59,7 @@ public class Parser {
             }
         }
 
-        return new ZyraParsedObject(clazz.getSimpleName(), parsedFields, zyraConfig);
+        return new ZyraParsedObject(ZyraUtils.normalizeFilename(clazz), parsedFields, zyraConfig);
     }
 
 }

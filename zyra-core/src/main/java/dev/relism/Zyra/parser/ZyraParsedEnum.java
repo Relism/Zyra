@@ -4,9 +4,13 @@ import dev.relism.Zyra.annotations.Zyra;
 
 import java.util.List;
 
-public record ZyraParsedEnum(String name, List<String> enumValues, Zyra config) implements ZyraParsedType {
+public record ZyraParsedEnum(
+        String name,
+        List<String>
+        enumValues,
+        Zyra config
+) implements ZyraParsedDefinition {
 
-    @Override
     public String generateTypeScriptDefinition() {
         int indentSpaces = config != null ? config.indentSpaces() : 2;
         Zyra.Export export = config != null ? config.export() : Zyra.Export.NAMED;

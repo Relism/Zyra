@@ -8,6 +8,7 @@ public @interface Zyra {
     Export export() default Export.NAMED;
     DefinitionStyle style() default DefinitionStyle.TYPE;
     int indentSpaces() default 2;
+    String name() default "";
 
     enum Export {
         NAMED,

@@ -7,10 +7,9 @@
 
     <modules>
         <module>zyra-core</module>
-        <module>zyra-tsgen</module>
-        <module>zyra-zodgen</module>
         <module>zyra-maven-plugin</module>
         <module>zyra-cli</module>
+        <module>zyra-testproject</module>
     </modules>
 
     <properties>
